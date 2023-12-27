@@ -21,7 +21,7 @@ This Python script is designed to manage AWS Security Groups. It scans all secur
 1. Clone the repository:
    ```bash
    git clone https://github.com/birmanator/task1.git
-   cd your-repository
+   cd birmanator
 
 ## How To Execute
 1) Locally (terminal): 
