@@ -1,0 +1,78 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - master
+      - main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'python' ]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Install Python linter (pylint)
+        run: pip install pylint
+
+      - name: Run pylint
+        continue-on-error: true
+        run: pylint **/*.py
+
+      - name: Install YAML linter (yamllint)
+        run: pip install yamllint
+
+      - name: Run yamllint
+        continue-on-error: true
+        run: yamllint .
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        continue-on-error: true
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
+
+      - name: Build Docker Image
+        run: docker build -t birmanator/birmanator:latest .
+
+      - name: Scan the Docker image with Trivy
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $HOME/.cache:/root/.cache/ aquasec/trivy image birmanator/birmanator:latest
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/birmanator:latest
