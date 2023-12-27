@@ -11,7 +11,7 @@ This Python script is designed to manage AWS Security Groups. It scans all secur
 
 ## Prerequisites
 
-- Python 3.10 or higher
+- Python 3.6 or higher
 - AWS CLI installed and configured, or AWS Access Key ID and Secret Access Key
 - `boto3` Python package
 - An S3 bucket for uploading logs
@@ -20,7 +20,7 @@ This Python script is designed to manage AWS Security Groups. It scans all secur
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/your-repository.git
+   git clone https://github.com/birmanator/task1.git
    cd your-repository
 
 ## How To Execute
@@ -50,5 +50,5 @@ This Python script is designed to manage AWS Security Groups. It scans all secur
            -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
            -e REGION=<REGION> \
            -e BUCKET=<BUCKET_NAME> \
-           <DESIRED_IMAGE_NAME> --log-mode
+           <DESIRED_IMAGE_NAME> [--log-mode]
       ``` 

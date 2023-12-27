@@ -17,7 +17,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
 
       - name: Pull Docker Image
-        run: docker pull ${{ secrets.DOCKERHUB_USERNAME }}/birmanator:latest
+        run: docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_USERNAME }}:latest
 
       - name: Run Docker Container in Log Mode And Display The Output
         run: |
@@ -25,4 +25,4 @@ jobs:
                      -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
                      -e REGION=${{ secrets.REGION }} \
                      -e BUCKET=${{ secrets.BUCKET }} \
-                     ${{ secrets.DOCKERHUB_USERNAME }}/birmanator:latest --log-mode
+                     ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_USERNAME }}:latest --log-mode

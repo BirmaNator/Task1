@@ -2,9 +2,10 @@ import logging
 import argparse
 import os
 import sys
+from typing import Optional, Tuple, Dict, Any
 
 import boto3
-
+from botocore.client import BaseClient
 
 logging.basicConfig(filename='log.txt',
                     level=logging.INFO,
@@ -14,8 +15,9 @@ logging.basicConfig(filename='log.txt',
 # ---------------------------- Client Creation ----------------------------
 
 
-def create_boto_client(region, access_key=None, secret_key=None):
-    """Create and return an EC2 client."""
+def create_boto_client(region: str, access_key: Optional[str] = None,
+                       secret_key: Optional[str] = None) -> Optional[BaseClient]:
+    """Create and return a boto3 client."""
     try:
         return boto3.client(
             'ec2',
@@ -27,7 +29,8 @@ def create_boto_client(region, access_key=None, secret_key=None):
         logging.error(f'Failed to create boto client: {e}')
 
 
-def create_s3_client(region, access_key=None, secret_key=None):
+def create_s3_client(region: str, access_key: Optional[str] = None,
+                     secret_key: Optional[str] = None) -> Optional[BaseClient]:
     """Create and return an S3 client."""
     try:
         return boto3.client(
@@ -43,12 +46,8 @@ def create_s3_client(region, access_key=None, secret_key=None):
 # ---------------------------- Security Group/S3/Logging Actions ----------------------------
 
 
-def get_all_sgs(boto_instance):
-    """
-    Returns security groups, will be used for security group actions
-    :param boto_instance: boto3 client created earlier
-    :return: Security groups
-    """
+def _get_all_sgs(boto_instance: BaseClient) -> list:
+    """Returns security groups, will be used for security group actions"""
     try:
         return boto_instance.describe_security_groups()['SecurityGroups']
     except Exception as e:
@@ -56,11 +55,11 @@ def get_all_sgs(boto_instance):
         return []
 
 
-def check_inbound_rule(security_group):
+def _check_inbound_rule(security_group: Dict[str, Any]) -> Tuple[bool, Optional[Dict[str, Any]]]:
     """
     Gets sercurity groups object and checks for each security group if there is a "bad rule"
-    :param security_group: create_boto_client()
-    :return: boolean & inbound rule if true (for each security group in a VPC), boolean & None if not
+    :param security_group: AWS security group object which contains multiple attributes
+    :return: bool (contain a bad rule or not), details of a rule (contains multiple attributes) or None
     """
     for perm in security_group.get('IpPermissions', []):
         for ip_range in perm.get('IpRanges', []):
@@ -69,25 +68,15 @@ def check_inbound_rule(security_group):
     return False, None
 
 
-def log_sg(sg_id, rule):
-    """
-    Logs and prints log_msg, used inside another function (scan_and_fix_security_groups)
-    :param sg_id: check_inbound_rule output
-    :param rule: check_inbound_rule output
-    """
+def _log_sg(sg_id: str, rule: Dict[str, Any]) -> None:
+    """ Logs and prints log_msg, used inside another function (scan_and_fix_security_groups)"""
     log_msg = f'Open access found in SG {sg_id}: {rule}'
     logging.info(log_msg)
     print(log_msg)
 
 
-def remove_inbound_rule(boto3_client, sg_id, rule):
-    """
-    Removes specified inbound rule, a single action which is triggered
-    in scan_and_fix_security_groups
-    :param boto3_client: boto3 client created earlier
-    :param sg_id: check_inbound_rule output
-    :param rule: check_inbound_rule output
-    """
+def _remove_inbound_rule(boto3_client: BaseClient, sg_id: str, rule: Dict[str, Any]) -> None:
+    """ Removes a specified inbound rule from a security group."""
     try:
         boto3_client.revoke_security_group_ingress(
             GroupId=sg_id,
@@ -98,14 +87,8 @@ def remove_inbound_rule(boto3_client, sg_id, rule):
         logging.error(f"Error removing inbound rule from SG {sg_id}: {e}")
 
 
-def upload_to_s3(s3_client, bucket_name):
-    """
-    Uploads the log file (created locally/inside the container) to the specified S3 bucket.
-    a log file will be created locally when running the script from your local machine.
-    :param s3_client: s3 client created earlier
-    :param bucket_name: inserted with args
-    :return:
-    """
+def upload_to_s3(s3_client: BaseClient, bucket_name: str) -> None:
+    """Uploads the log file (created locally/inside the container) to the specified S3 bucket."""
     try:
         s3_client.upload_file('log.txt', bucket_name, 'log.txt')
         logging.info(f"Log file uploaded to S3 bucket: {bucket_name}")
@@ -113,22 +96,17 @@ def upload_to_s3(s3_client, bucket_name):
         logging.error(f"Error uploading log file to S3: {e}")
 
 
-def scan_and_fix_security_groups(boto_client, log_mode):
-    """
-    Scans all security groups, if a security group has
-    a "bad inbound rule" it will be removed and logged,
-    :param boto_client: boto client created earlier
-    :param log_mode: inserted with args
-    """
+def scan_and_fix_security_groups(boto_client: BaseClient, log_mode: bool) -> None:
+    """Scans all security groups, if a security group has a "bad inbound" rule it will be removed and logged"""
     bad_inbound_rule = False
-    security_groups = get_all_sgs(boto_client)
+    security_groups = _get_all_sgs(boto_client)
     for sg in security_groups:
-        open_access, rule = check_inbound_rule(sg)
+        open_access, rule = _check_inbound_rule(sg)
         if open_access:
-            log_sg(sg['GroupId'], rule)
+            _log_sg(sg['GroupId'], rule)
             bad_inbound_rule = True
             if not log_mode:
-                remove_inbound_rule(boto_client, sg['GroupId'], rule)
+                _remove_inbound_rule(boto_client, sg['GroupId'], rule)
     if not bad_inbound_rule:
         log_msg = 'All Security Groups does not allow communication from 0.0.0.0/0'
         logging.info(log_msg)

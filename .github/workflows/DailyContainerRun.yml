@@ -13,9 +13,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v2
 
-      - name: Run a test command
-        run: echo "test 5 minutes"
-
       - name: Login to Docker Hub (Optional if the image is public)
         uses: docker/login-action@v1
         with:
@@ -23,7 +20,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
 
       - name: Pull Docker Image
-        run: docker pull ${{ secrets.DOCKERHUB_USERNAME }}/birmanator:latest
+        run: docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_USERNAME }}:latest
 
       - name: Run Docker Container
         run: |
@@ -31,4 +28,4 @@ jobs:
                      -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
                      -e REGION=${{ env.REGION }} \
                      -e BUCKET=${{ env.BUCKET }} \
-                     ${{ secrets.DOCKERHUB_USERNAME }}/birmanator:latest
+                     ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_USERNAME }}:latest
