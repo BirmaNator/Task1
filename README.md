@@ -33,7 +33,7 @@ This Python script is designed to manage AWS Security Groups. It scans all secur
    ```
    python task1.py --access-key <ACCESS_KEY> --secret-key <SECRET_KEY> --region <REGION> --bucket <BUCKET_NAME> [--log-mode]
     ```
-   ** Running in log mode will not make any changes in your security groups
+   ** Running in log mode will not make any changes in your security groups **
 2) Running with Docker 
    1) Build image locally
    ```
